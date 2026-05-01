@@ -52,13 +52,15 @@ export interface Notification {
   createdAt: string;
 }
 
-export type JobStatus = 'open' | 'closed';
+export type JobStatus = 'open' | 'closed' | 'urgent_replacement';
 
 export interface Job {
   id: string;
   title: string;
   description: string;
   payment: string;
+  salary?: number;
+  salaryType?: 'per_day' | 'fixed' | 'monthly';
   workersNeeded?: number;
   location: {
     lat: number;
@@ -73,11 +75,13 @@ export interface Job {
   employerName: string;
   category: string;
   time: string;
+  startTime?: string;
+  endTime?: string;
   status: JobStatus;
   createdAt: string;
 }
 
-export type ApplicationStatus = 'pending' | 'accepted' | 'rejected';
+export type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'emergency_cancel' | 'no_show';
 
 export interface Application {
   id: string;

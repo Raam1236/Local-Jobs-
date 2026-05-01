@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { auth, db } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { User, LogOut, Phone, MapPin, Award, Languages, Loader2, Star, Check, Shield } from 'lucide-react';
+import { User, LogOut, Phone, MapPin, Award, Languages, Loader2, Star, Check, Shield, Search } from 'lucide-react';
 import AdBanner from '../components/AdBanner';
+import { Country, State, City } from 'country-state-city';
 
 export default function ProfileScreen() {
   const { profile, user, refreshProfile } = useAuth();
@@ -18,12 +19,29 @@ export default function ProfileScreen() {
     name: profile?.name || '',
     phone: profile?.phone || '',
     skills: profile?.skills?.join(', ') || '',
+    country: profile?.location?.country || 'India',
+    countryCode: profile?.location?.countryCode || 'IN',
     state: profile?.location?.state || '',
+    stateCode: profile?.location?.stateCode || '',
     district: profile?.location?.district || '',
     village: profile?.location?.village || '',
     pincode: profile?.location?.pincode || '',
     referralCode: profile?.referralCode || '',
   });
+
+  const countries = useMemo(() => {
+    return Country.getAllCountries().sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  const states = useMemo(() => {
+    if (!formData.countryCode) return [];
+    return State.getStatesOfCountry(formData.countryCode).sort((a, b) => a.name.localeCompare(b.name));
+  }, [formData.countryCode]);
+
+  const districts = useMemo(() => {
+    if (!formData.countryCode || !formData.stateCode) return [];
+    return City.getCitiesOfState(formData.countryCode, formData.stateCode).sort((a, b) => a.name.localeCompare(b.name));
+  }, [formData.countryCode, formData.stateCode]);
 
   const handleLogout = () => signOut(auth);
 
@@ -59,7 +77,10 @@ export default function ProfileScreen() {
         skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
         location: {
           ...profile.location,
+          country: formData.country,
+          countryCode: formData.countryCode,
           state: formData.state,
+          stateCode: formData.stateCode,
           district: formData.district,
           village: formData.village,
           pincode: formData.pincode,
@@ -155,44 +176,90 @@ export default function ProfileScreen() {
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">State</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                  value={formData.state}
-                  onChange={(e) => setFormData({...formData, state: e.target.value})}
-                />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Country</label>
+                <select
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-bold text-slate-700"
+                  value={formData.countryCode}
+                  onChange={(e) => {
+                    const country = countries.find(c => c.isoCode === e.target.value);
+                    setFormData({
+                      ...formData, 
+                      countryCode: e.target.value, 
+                      country: country?.name || '',
+                      stateCode: '',
+                      state: '',
+                      district: ''
+                    });
+                  }}
+                >
+                  <option value="">Select Country</option>
+                  {countries.map(c => (
+                    <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+                  ))}
+                </select>
               </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">District</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                  value={formData.district}
-                  onChange={(e) => setFormData({...formData, district: e.target.value})}
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">State</label>
+                  <select
+                    disabled={!formData.countryCode}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-bold text-slate-700 disabled:opacity-50"
+                    value={formData.stateCode}
+                    onChange={(e) => {
+                      const state = states.find(s => s.isoCode === e.target.value);
+                      setFormData({
+                        ...formData, 
+                        stateCode: e.target.value, 
+                        state: state?.name || '',
+                        district: ''
+                      });
+                    }}
+                  >
+                    <option value="">Select State</option>
+                    {states.map(s => (
+                      <option key={s.isoCode} value={s.isoCode}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">District/City</label>
+                  <select
+                    disabled={!formData.stateCode}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-bold text-slate-700 disabled:opacity-50"
+                    value={formData.district}
+                    onChange={(e) => setFormData({...formData, district: e.target.value})}
+                  >
+                    <option value="">Select District</option>
+                    {districts.map(d => (
+                      <option key={d.name} value={d.name}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Village/City</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                  value={formData.village}
-                  onChange={(e) => setFormData({...formData, village: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Pincode</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                  value={formData.pincode}
-                  onChange={(e) => setFormData({...formData, pincode: e.target.value})}
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Village (Manual Entry)</label>
+                  <input
+                    type="text"
+                    placeholder="Enter village"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-bold text-slate-700"
+                    value={formData.village}
+                    onChange={(e) => setFormData({...formData, village: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Pincode</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-bold text-slate-700"
+                    value={formData.pincode}
+                    onChange={(e) => setFormData({...formData, pincode: e.target.value})}
+                  />
+                </div>
               </div>
             </div>
             {profile.role === 'worker' && (
@@ -295,7 +362,7 @@ export default function ProfileScreen() {
                      <p className="text-xs text-slate-400">Location</p>
                      <p className="text-sm font-bold text-slate-700 leading-tight">
                        {profile.location?.village || profile.location?.district 
-                         ? `${profile.location.village ? profile.location.village + ', ' : ''}${profile.location.district ? profile.location.district + ', ' : ''}${profile.location.state || ''}`
+                         ? `${profile.location.village ? profile.location.village + ', ' : ''}${profile.location.district ? profile.location.district + ', ' : ''}${profile.location.state ? profile.location.state + ', ' : ''}${profile.location.country || ''}`
                          : profile.location?.lat 
                            ? `${profile.location.lat.toFixed(2)}, ${profile.location.lng.toFixed(2)}` 
                            : 'Not set'}

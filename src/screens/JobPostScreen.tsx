@@ -31,10 +31,19 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
     village: '',
     pincode: '',
     category: 'Helper',
-    time: ''
+    time: '',
+    startTime: '09:00',
+    endTime: '18:00',
+    salary: '',
+    salaryType: 'per_day' as 'per_day' | 'fixed' | 'monthly'
   });
 
   const categories = ['Delivery', 'Helper', 'Mechanic', 'Cleaner', 'Repair', 'Construction', 'Others'];
+  const salaryTypes = [
+    { value: 'per_day', label: 'Per Day' },
+    { value: 'fixed', label: 'Fixed Price' },
+    { value: 'monthly', label: 'Monthly' }
+  ];
 
   const handleMagicFill = async () => {
     if (!formData.title && !formData.description) {
@@ -187,26 +196,46 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2 sm:col-span-1">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Salary / Payment</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                required
+                className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g. 500"
+                value={formData.salary}
+                onChange={(e) => setFormData({...formData, salary: e.target.value, payment: `₹${e.target.value}/${formData.salaryType === 'per_day' ? 'day' : formData.salaryType}`})}
+              />
+              <select
+                className="w-32 px-2 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none text-xs font-bold"
+                value={formData.salaryType}
+                onChange={(e) => setFormData({...formData, salaryType: e.target.value as any, payment: `₹${formData.salary}/${e.target.value === 'per_day' ? 'day' : e.target.value}`})}
+              >
+                {salaryTypes.map(st => (
+                  <option key={st.value} value={st.value}>{st.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">{t('payment')}</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Start Time</label>
             <input
-              type="text"
+              type="time"
               required
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. ₹500/day"
-              value={formData.payment}
-              onChange={(e) => setFormData({...formData, payment: e.target.value})}
+              value={formData.startTime}
+              onChange={(e) => setFormData({...formData, startTime: e.target.value, time: `${e.target.value} - ${formData.endTime}`})}
             />
           </div>
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">{t('time')}</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">End Time</label>
             <input
-              type="text"
+              type="time"
               required
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. 9 AM - 6 PM"
-              value={formData.time}
-              onChange={(e) => setFormData({...formData, time: e.target.value})}
+              value={formData.endTime}
+              onChange={(e) => setFormData({...formData, endTime: e.target.value, time: `${formData.startTime} - ${e.target.value}`})}
             />
           </div>
         </div>

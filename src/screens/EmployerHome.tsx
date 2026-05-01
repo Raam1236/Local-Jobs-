@@ -3,7 +3,7 @@ import { collection, query, where, onSnapshot, orderBy, updateDoc, doc, deleteDo
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Job, Application, UserProfile } from '../types';
+import { Job, Application, UserProfile, ApplicationStatus } from '../types';
 import { ChevronRight, Users, Clock, Banknote, MapPin, Loader2, Phone, Check, X, Search, Award, Star, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import WorkerDetailScreen from './WorkerDetailScreen';
@@ -86,7 +86,7 @@ export default function EmployerHome() {
     return unsubscribe;
   }, [user]);
 
-  const handleUpdateStatus = async (appId: string, status: 'accepted' | 'rejected') => {
+  const handleUpdateStatus = async (appId: string, status: ApplicationStatus) => {
     try {
       const app = applications.find(a => a.id === appId);
       const job = jobs.find(j => j.id === app?.jobId);
@@ -94,16 +94,42 @@ export default function EmployerHome() {
       await updateDoc(doc(db, 'applications', appId), { status });
 
       if (app && job) {
+        // If it's a no-show, mark job as replacement needed
+        if (status === 'no_show') {
+          await updateDoc(doc(db, 'jobs', job.id), { status: 'urgent_replacement' });
+        }
+
         await createNotification(
           app.workerId,
           'application_status',
-          `Application ${status === 'accepted' ? 'Accepted' : 'Updated'}`,
-          `Your application for "${job.title}" has been ${status}.`,
+          `Application Status Updated`,
+          `Your application for "${job.title}" has been marked as ${status.replace('_', ' ')}.`,
           appId
         );
       }
     } catch (error) {
       console.error("Error updating status:", error);
+    }
+  };
+
+  const handleReNotifyApplicants = async (jobId: string) => {
+    try {
+      const job = jobs.find(j => j.id === jobId);
+      if (!job) return;
+
+      const jobApps = applications.filter(a => a.jobId === jobId && a.status !== 'accepted');
+      for (const app of jobApps) {
+        await createNotification(
+          app.workerId,
+          'system',
+          'Urgent Opening!',
+          `The job "${job.title}" needs an urgent replacement. Apply again or check status!`,
+          jobId
+        );
+      }
+      alert(`Sent urgent notifications to ${jobApps.length} previous applicants.`);
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -298,9 +324,15 @@ export default function EmployerHome() {
                         >
                           <Trash2 size={18} strokeWidth={3} />
                         </button>
-                      <div className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full ${job.status === 'open' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-slate-100 text-slate-400'}`}>
-                        {job.status}
-                      </div>
+                        {job.status === 'urgent_replacement' ? (
+                          <div className="bg-rose-600 text-white text-[8px] font-black px-4 py-2 rounded-full uppercase tracking-[0.2em] shadow-lg shadow-rose-200">
+                             Replacement Needed
+                          </div>
+                        ) : (
+                          <div className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full ${job.status === 'open' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-slate-100 text-slate-400'}`}>
+                            {job.status}
+                          </div>
+                        )}
                     </div>
                   </div>
                   
@@ -326,6 +358,17 @@ export default function EmployerHome() {
                       </div>
                       <span className="text-xs font-bold text-slate-500">{jobApps.length} Applicants</span>
                     </div>
+                    {job.status === 'urgent_replacement' && (
+                      <button 
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleReNotifyApplicants(job.id);
+                         }}
+                         className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[8px] font-black uppercase tracking-widest border border-blue-100 hover:bg-blue-600 hover:text-white transition-all ml-2"
+                      >
+                         Re-notify All
+                      </button>
+                    )}
                     <motion.div animate={{ rotate: isExpanded ? 90 : 0 }}>
                       <ChevronRight size={20} className="text-slate-300" />
                     </motion.div>
@@ -381,26 +424,31 @@ export default function EmployerHome() {
                                     {app.status}
                                   </div>
                                   {app.status === 'accepted' && (
-                                    isContactUnlocked(app.workerId) ? (
-                                      <a 
-                                        href={`tel:${app.workerId}`} // Note: I need the actual phone here, but app only has workerId. 
-                                        // Wait, the application object doesn't have the worker's phone.
-                                        // I'd have to fetch it or store it in the application.
-                                        // For now, they can just click the name to go to the gated detail screen.
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="hidden"
-                                      ></a>
-                                    ) : (
+                                    <div className="flex items-center gap-2">
                                       <button 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleUnlockContact(app.workerId);
-                                        }}
-                                        className="p-2 bg-blue-50 text-blue-600 rounded-xl"
+                                        onClick={() => handleUpdateStatus(app.id, 'no_show')}
+                                        className="px-3 py-2 bg-rose-50 text-rose-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-600 hover:text-white transition-all"
                                       >
-                                        <Phone size={14} />
+                                        No Show
                                       </button>
-                                    )
+                                      {isContactUnlocked(app.workerId) ? (
+                                        <a 
+                                          href={`tel:${app.workerId}`} 
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="hidden"
+                                        ></a>
+                                      ) : (
+                                        <button 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleUnlockContact(app.workerId);
+                                          }}
+                                          className="p-2 bg-blue-50 text-blue-600 rounded-xl"
+                                        >
+                                          <Phone size={14} />
+                                        </button>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
                               )}

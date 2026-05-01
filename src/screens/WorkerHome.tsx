@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, addDoc, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, addDoc, onSnapshot, orderBy, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Job, Application } from '../types';
-import { MapPin, Clock, Banknote, Search, Filter, Loader2, CheckCircle, Navigation, Phone as PhoneIcon, Mic, Users, Volume2, Sparkles, BrainCircuit } from 'lucide-react';
+import { MapPin, Clock, Banknote, Search, Filter, Loader2, CheckCircle, Navigation, Phone as PhoneIcon, Mic, Users, Volume2, Sparkles, BrainCircuit, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import AdBanner from '../components/AdBanner';
 import FullscreenAd from '../components/FullscreenAd';
@@ -121,7 +121,7 @@ export default function WorkerHome({ myJobsOnly = false }: WorkerHomeProps) {
 
   useEffect(() => {
     const jobsRef = collection(db, 'jobs');
-    const q = query(jobsRef, where('status', '==', 'open'), orderBy('createdAt', 'desc'));
+    const q = query(jobsRef, where('status', 'in', ['open', 'urgent_replacement']), orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
@@ -175,6 +175,33 @@ export default function WorkerHome({ myJobsOnly = false }: WorkerHomeProps) {
       console.error("Error applying:", error);
     } finally {
       setApplying(null);
+    }
+  };
+
+  const handleEmergencyCancel = async (job: Job) => {
+    if (!user || !profile) return;
+    try {
+      // Find the application doc ID
+      const appsRef = collection(db, 'applications');
+      const q = query(appsRef, where('jobId', '==', job.id), where('workerId', '==', user.uid));
+      const snap = await getDocs(q);
+      
+      if (!snap.empty) {
+        const appId = snap.docs[0].id;
+        await updateDoc(doc(db, 'applications', appId), { status: 'emergency_cancel' });
+        await updateDoc(doc(db, 'jobs', job.id), { status: 'urgent_replacement' });
+
+        // Notify Employer
+        await createNotification(
+          job.employerId,
+          'application_status',
+          'Emergency Cancellation',
+          `${profile.name} cancelled their acceptance for "${job.title}" due to an emergency. Job re-opened as Urgent.`,
+          job.id
+        );
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -423,6 +450,13 @@ export default function WorkerHome({ myJobsOnly = false }: WorkerHomeProps) {
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 group-hover:bg-blue-50 transition-colors" />
                   
+                  {job.status === 'urgent_replacement' && (
+                    <div className="absolute top-4 left-4 bg-rose-600 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-rose-200 z-20 flex items-center gap-1">
+                      <AlertTriangle size={8} />
+                      Replacement Needed
+                    </div>
+                  )}
+
                   {userApplications[job.id] && (
                      <div className="absolute top-4 right-4 bg-emerald-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-emerald-200 z-10">
                        {userApplications[job.id]}
@@ -472,9 +506,20 @@ export default function WorkerHome({ myJobsOnly = false }: WorkerHomeProps) {
                           {applying === job.id ? <Loader2 size={18} className="animate-spin" /> : t('apply')}
                         </button>
                       ) : (
-                        <div className="flex-1 flex items-center justify-center gap-2 py-4 bg-emerald-50 text-emerald-600 rounded-[20px] font-black uppercase text-[10px] tracking-[0.2em] border border-emerald-100">
-                          <CheckCircle size={18} />
-                          <span>{t('applied')}</span>
+                        <div className="flex-1 flex flex-col gap-2">
+                          <div className="flex items-center justify-center gap-2 py-4 bg-emerald-50 text-emerald-600 rounded-[20px] font-black uppercase text-[10px] tracking-[0.2em] border border-emerald-100">
+                            <CheckCircle size={18} />
+                            <span>{userApplications[job.id]}</span>
+                          </div>
+                          {userApplications[job.id] === 'accepted' && (
+                            <button
+                              onClick={() => handleEmergencyCancel(job)}
+                              className="w-full py-2 bg-rose-50 text-rose-600 rounded-xl text-[8px] font-black uppercase tracking-widest border border-rose-100 active:scale-95 transition-all flex items-center justify-center gap-1"
+                            >
+                              <AlertTriangle size={10} />
+                              Emergency Cancel
+                            </button>
+                          )}
                         </div>
                       )}
                       
