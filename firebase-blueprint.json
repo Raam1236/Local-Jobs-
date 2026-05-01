@@ -1,0 +1,150 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the platform (Worker or Employer)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["worker", "employer"] },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "location": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" }, "state": { "type": "string" }, "district": { "type": "string" }, "village": { "type": "string" }, "pincode": { "type": "string" } } },
+        "phone": { "type": "string" },
+        "averageRating": { "type": "number" },
+        "ratingCount": { "type": "number" },
+        "isAvailableToday": { "type": "boolean" },
+        "profileImageUrl": { "type": "string" },
+        "languages": { "type": "array", "items": { "type": "string" } },
+        "isPremium": { "type": "boolean" },
+        "viewedContactIds": { "type": "array", "items": { "type": "string" } },
+        "isVerified": { "type": "boolean" },
+        "referralCode": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "name", "role"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "User reports for abuse or fraud",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "reporterId": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["user", "job"] },
+        "reason": { "type": "string" },
+        "details": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "resolved", "dismissed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "SystemConfig": {
+      "title": "SystemConfig",
+      "description": "Global administrative settings",
+      "type": "object",
+      "properties": {
+        "bankName": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "ifscCode": { "type": "string" },
+        "accountHolder": { "type": "string" },
+        "adsenseId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A review for a worker",
+      "type": "object",
+      "properties": {
+          "id": { "type": "string" },
+          "reviewerId": { "type": "string" },
+          "reviewerName": { "type": "string" },
+          "reviewText": { "type": "string" },
+          "rating": { "type": "number" },
+          "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "reviewerId", "rating", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "A notification for a user",
+      "type": "object",
+      "properties": {
+          "id": { "type": "string" },
+          "userId": { "type": "string" },
+          "type": { "type": "string", "enum": ["job_application", "application_status", "new_review", "system"] },
+          "title": { "type": "string" },
+          "message": { "type": "string" },
+          "relatedId": { "type": "string" },
+          "read": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "type", "title", "message", "read", "createdAt"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "A job opportunity posted by an Employer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "payment": { "type": "string" },
+        "location": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } },
+        "locationName": { "type": "string" },
+        "employerId": { "type": "string" },
+        "category": { "type": "string" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "employerId", "payment", "status"]
+    },
+    "Application": {
+      "title": "Application",
+      "description": "An application for a job by a Worker",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "jobId": { "type": "string" },
+        "workerId": { "type": "string" },
+        "employerId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "jobId", "workerId", "employerId", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/users/{userId}/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Reviews for a worker"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "System-wide and user-specific notifications"
+    },
+    "/system/config": {
+      "schema": "SystemConfig",
+      "description": "Global administrative settings"
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Abuse and fraud reports"
+    },
+    "/jobs/{jobId}": {
+      "schema": "Job",
+      "description": "Job postings"
+    },
+    "/applications/{applicationId}": {
+      "schema": "Application",
+      "description": "Job applications"
+    }
+  }
+}

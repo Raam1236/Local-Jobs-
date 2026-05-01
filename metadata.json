@@ -1,0 +1,6 @@
+{
+  "name": "LocalJob",
+  "description": "Hyperlocal daily wage job platform connecting workers and employers in villages and towns. Features real-time alerts, AI-assisted job posting, and secure worker verification.",
+  "requestFramePermissions": ["geolocation", "microphone"],
+  "majorCapabilities": []
+}
