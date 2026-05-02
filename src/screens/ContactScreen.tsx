@@ -9,7 +9,7 @@ export default function ContactScreen() {
       title: "WhatsApp Support",
       desc: "Fastest way to get help",
       action: "Chat Now",
-      link: "https://wa.me/919999999999", // Placeholder
+      link: "https://wa.me/916361380854",
       color: "bg-emerald-50"
     },
     {
@@ -17,7 +17,7 @@ export default function ContactScreen() {
       title: "Email Support",
       desc: "For detailed inquiries",
       action: "Send Email",
-      link: "mailto:support@localjob.com",
+      link: "mailto:rgfoods02@gmail.com",
       color: "bg-blue-50"
     },
     {
@@ -25,7 +25,7 @@ export default function ContactScreen() {
       title: "Call Helpline",
       desc: "Mon-Sat, 10AM - 6PM",
       action: "Call Now",
-      link: "tel:+919999999999",
+      link: "tel:+918277432056",
       color: "bg-rose-50"
     }
   ];

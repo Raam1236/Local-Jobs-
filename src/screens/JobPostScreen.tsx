@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,7 @@ import { generateJobDraft, detectFraud } from '../services/geminiService';
 import { motion } from 'motion/react';
 import AdBanner from '../components/AdBanner';
 import FullscreenAd from '../components/FullscreenAd';
+import { Country, State, City } from 'country-state-city';
 
 interface JobPostScreenProps {
   onComplete: () => void;
@@ -26,7 +27,10 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
     payment: '',
     workersNeeded: '1',
     locationName: '',
+    country: 'India',
+    countryCode: 'IN',
     state: '',
+    stateCode: '',
     district: '',
     village: '',
     pincode: '',
@@ -44,6 +48,20 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
     { value: 'fixed', label: 'Fixed Price' },
     { value: 'monthly', label: 'Monthly' }
   ];
+
+  const countries = useMemo(() => {
+    return Country.getAllCountries().sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  const states = useMemo(() => {
+    if (!formData.countryCode) return [];
+    return State.getStatesOfCountry(formData.countryCode).sort((a, b) => a.name.localeCompare(b.name));
+  }, [formData.countryCode]);
+
+  const districts = useMemo(() => {
+    if (!formData.countryCode || !formData.stateCode) return [];
+    return City.getCitiesOfState(formData.countryCode, formData.stateCode).sort((a, b) => a.name.localeCompare(b.name));
+  }, [formData.countryCode, formData.stateCode]);
 
   const handleMagicFill = async () => {
     if (!formData.title && !formData.description) {
@@ -254,38 +272,79 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
         </div>
 
         <div className="space-y-4 pt-2 border-t border-slate-100">
-          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em]">Location Details (India)</p>
+          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em]">Location Details</p>
+          
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Country</label>
+            <select
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-slate-700"
+              value={formData.countryCode}
+              onChange={(e) => {
+                const country = countries.find(c => c.isoCode === e.target.value);
+                setFormData({
+                  ...formData, 
+                  countryCode: e.target.value, 
+                  country: country?.name || '',
+                  stateCode: '',
+                  state: '',
+                  district: ''
+                });
+              }}
+            >
+              <option value="">Select Country</option>
+              {countries.map(c => (
+                <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">State</label>
-              <input
-                type="text"
+              <select
                 required
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                placeholder="e.g. Karnataka"
-                value={formData.state}
-                onChange={(e) => setFormData({...formData, state: e.target.value})}
-              />
+                disabled={!formData.countryCode}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-slate-700 disabled:opacity-50"
+                value={formData.stateCode}
+                onChange={(e) => {
+                  const state = states.find(s => s.isoCode === e.target.value);
+                  setFormData({
+                    ...formData, 
+                    stateCode: e.target.value, 
+                    state: state?.name || '',
+                    district: ''
+                  });
+                }}
+              >
+                <option value="">Select State</option>
+                {states.map(s => (
+                  <option key={s.isoCode} value={s.isoCode}>{s.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">District</label>
-              <input
-                type="text"
+              <select
                 required
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                placeholder="e.g. Bengaluru"
+                disabled={!formData.stateCode}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-slate-700 disabled:opacity-50"
                 value={formData.district}
                 onChange={(e) => setFormData({...formData, district: e.target.value})}
-              />
+              >
+                <option value="">Select District</option>
+                {districts.map(d => (
+                  <option key={d.name} value={d.name}>{d.name}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Village / Area</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Village / Area (Manual)</label>
               <input
                 type="text"
                 required
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="e.g. Indiranagar"
                 value={formData.village}
                 onChange={(e) => setFormData({...formData, village: e.target.value})}
@@ -296,7 +355,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
               <input
                 type="text"
                 required
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="e.g. 560038"
                 value={formData.pincode}
                 onChange={(e) => setFormData({...formData, pincode: e.target.value})}
