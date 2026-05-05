@@ -10,6 +10,7 @@ import AdBanner from '../components/AdBanner';
 import FullscreenAd from '../components/FullscreenAd';
 import { createNotification } from '../lib/notifications';
 import { suggestJobsForWorker } from '../services/geminiService';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 interface WorkerHomeProps {
   myJobsOnly?: boolean;
@@ -127,6 +128,8 @@ export default function WorkerHome({ myJobsOnly = false }: WorkerHomeProps) {
       const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
       setJobs(jobsData);
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'jobs');
     });
 
     return unsubscribe;
@@ -144,6 +147,8 @@ export default function WorkerHome({ myJobsOnly = false }: WorkerHomeProps) {
         appMap[data.jobId] = data.status;
       });
       setUserApplications(appMap);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'applications');
     });
 
     return unsubscribe;
@@ -172,7 +177,7 @@ export default function WorkerHome({ myJobsOnly = false }: WorkerHomeProps) {
       );
       setShowAd(true);
     } catch (error) {
-      console.error("Error applying:", error);
+      handleFirestoreError(error, OperationType.CREATE, 'applications');
     } finally {
       setApplying(null);
     }

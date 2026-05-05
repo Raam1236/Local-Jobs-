@@ -5,6 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { UserProfile, Job } from '../types';
 import { Shield, CheckCircle, Trash2, Users, Briefcase, RefreshCw, CreditCard, Landmark, DollarSign, Save, LayoutGrid } from 'lucide-react';
 import { motion } from 'motion/react';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 export default function AdminScreen() {
   const { t } = useLanguage();
@@ -36,7 +37,7 @@ export default function AdminScreen() {
         setSystemConfig(configDoc.data() as any);
       }
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.GET, 'multiple');
     } finally {
       setLoading(false);
     }
@@ -47,8 +48,12 @@ export default function AdminScreen() {
   }, []);
 
   const toggleVerify = async (userId: string, currentStatus: boolean) => {
-    await updateDoc(doc(db, 'users', userId), { isVerified: !currentStatus });
-    fetchData();
+    try {
+      await updateDoc(doc(db, 'users', userId), { isVerified: !currentStatus });
+      fetchData();
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `users/${userId}`);
+    }
   };
 
   const deleteJob = async (jobId: string) => {
@@ -56,7 +61,7 @@ export default function AdminScreen() {
       await deleteDoc(doc(db, 'jobs', jobId));
       fetchData();
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.DELETE, `jobs/${jobId}`);
     }
   };
 
@@ -70,7 +75,7 @@ export default function AdminScreen() {
       }, { merge: true });
       alert("Settlement settings updated successfully!");
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.WRITE, 'system/config');
       alert("Error updating settings. Verification failed.");
     } finally {
       setSavingSettings(false);

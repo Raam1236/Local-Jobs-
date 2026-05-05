@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import WorkerDetailScreen from './WorkerDetailScreen';
 import AdBanner from '../components/AdBanner';
 import { createNotification } from '../lib/notifications';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 export default function EmployerHome() {
   const { user, profile, refreshProfile } = useAuth();
@@ -44,7 +45,7 @@ export default function EmployerHome() {
       await refreshProfile();
       return true;
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.UPDATE, `users/${user.uid}`);
       return false;
     }
   };
@@ -55,6 +56,8 @@ export default function EmployerHome() {
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setAvailableWorkers(snapshot.docs.map(doc => doc.data() as UserProfile));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'users');
     });
     return unsubscribe;
   }, []);
@@ -68,6 +71,8 @@ export default function EmployerHome() {
       const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
       setJobs(jobsData);
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'jobs');
     });
 
     return unsubscribe;
@@ -81,6 +86,8 @@ export default function EmployerHome() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const appsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Application));
       setApplications(appsData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'applications');
     });
 
     return unsubscribe;
@@ -108,7 +115,7 @@ export default function EmployerHome() {
         );
       }
     } catch (error) {
-      console.error("Error updating status:", error);
+      handleFirestoreError(error, OperationType.UPDATE, `applications/${appId}`);
     }
   };
 
@@ -136,11 +143,10 @@ export default function EmployerHome() {
   const getAppsForJob = (jobId: string) => applications.filter(app => app.jobId === jobId);
   
   const handleDeleteJob = async (jobId: string) => {
-    // Using a simpler check as window.confirm can be blocked in some iFrame environments
     try {
       await deleteDoc(doc(db, 'jobs', jobId));
     } catch (error) {
-      console.error("Error deleting job:", error);
+      handleFirestoreError(error, OperationType.DELETE, `jobs/${jobId}`);
     }
   };
 

@@ -1,6 +1,7 @@
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { NotificationType } from '../types';
+import { handleFirestoreError, OperationType } from './error-handler';
 
 export const createNotification = async (
   userId: string,
@@ -20,6 +21,6 @@ export const createNotification = async (
       createdAt: new Date().toISOString()
     });
   } catch (e) {
-    console.error('Error creating notification:', e);
+    handleFirestoreError(e, OperationType.CREATE, 'notifications');
   }
 };

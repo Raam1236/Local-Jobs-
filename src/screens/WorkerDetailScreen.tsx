@@ -8,6 +8,7 @@ import { Star, MessageCircle, Clock, MapPin, CheckCircle, ShieldCheck, Phone, Ar
 import { motion, AnimatePresence } from 'motion/react';
 import AdBanner from '../components/AdBanner';
 import { createNotification } from '../lib/notifications';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 interface WorkerDetailScreenProps {
   workerId: string;
@@ -51,7 +52,7 @@ export default function WorkerDetailScreen({ workerId, onBack }: WorkerDetailScr
       await updateDoc(doc(db, 'users', user.uid), { viewedContactIds: newViewed });
       await refreshProfile();
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.UPDATE, `users/${user.uid}`);
     } finally {
       setUnlocking(false);
     }
@@ -69,7 +70,7 @@ export default function WorkerDetailScreen({ workerId, onBack }: WorkerDetailScr
       );
       setReviews(reviewsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Review)));
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.GET, `users/${workerId}`);
     } finally {
       setLoading(false);
     }
@@ -128,7 +129,7 @@ export default function WorkerDetailScreen({ workerId, onBack }: WorkerDetailScr
 
       await fetchWorkerData();
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.WRITE, 'transaction');
     } finally {
       setSubmitting(false);
     }
@@ -149,7 +150,7 @@ export default function WorkerDetailScreen({ workerId, onBack }: WorkerDetailScr
       alert("Report submitted. Our moderation team will review this user.");
       setShowReport(false);
     } catch (e) {
-        console.error(e);
+      handleFirestoreError(e, OperationType.CREATE, 'reports');
     } finally {
       setReporting(false);
     }

@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Notification } from '../types';
 import { Bell, X, Check, Trash2, Info, Briefcase, Star, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 interface NotificationCenterProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setNotifications(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Notification)));
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'notifications');
     });
 
     return () => unsubscribe();
@@ -37,24 +40,29 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
     try {
       await updateDoc(doc(db, 'notifications', id), { read: true });
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.UPDATE, `notifications/${id}`);
     }
   };
 
   const markAllAsRead = async () => {
-    const unread = notifications.filter(n => !n.read);
-    const batch = writeBatch(db);
-    unread.forEach(n => {
-      batch.update(doc(db, 'notifications', n.id), { read: true });
-    });
-    await batch.commit();
+    try {
+      const unread = notifications.filter(n => !n.read);
+      if (unread.length === 0) return;
+      const batch = writeBatch(db);
+      unread.forEach(n => {
+        batch.update(doc(db, 'notifications', n.id), { read: true });
+      });
+      await batch.commit();
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, 'batch-notifications');
+    }
   };
 
   const deleteNotification = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'notifications', id));
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.DELETE, `notifications/${id}`);
     }
   };
 

@@ -19,8 +19,9 @@ import NotificationCenter from './components/NotificationCenter';
 import { UserRole, Notification as NotificationType } from './types';
 import { Loader2, Shield, MessageSquare, Bell, Navigation } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDocFromServer } from 'firebase/firestore';
 import { db } from './lib/firebase';
+import { handleFirestoreError, OperationType } from './lib/error-handler';
 
 type Screen = 'home' | 'profile' | 'post-job' | 'my-jobs' | 'admin' | 'contact';
 
@@ -36,6 +37,19 @@ function AppContent() {
   const [showLocationRationale, setShowLocationRationale] = useState(false);
   const prevCountRef = React.useRef(0);
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    async function testConnection() {
+      try {
+        await getDocFromServer(doc(db, 'system', 'connection-test'));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          handleFirestoreError(error, OperationType.GET, 'system/connection-test');
+        }
+      }
+    }
+    testConnection();
+  }, []);
 
   React.useEffect(() => {
     if (!user) return;

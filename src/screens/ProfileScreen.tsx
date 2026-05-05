@@ -7,6 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { User, LogOut, Phone, MapPin, Award, Languages, Loader2, Star, Check, Shield, Search } from 'lucide-react';
 import AdBanner from '../components/AdBanner';
 import { Country, State, City } from 'country-state-city';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 export default function ProfileScreen() {
   const { profile, user, refreshProfile } = useAuth();
@@ -58,7 +59,7 @@ export default function ProfileScreen() {
       setUpgradeSuccess(true);
       setTimeout(() => setUpgradeSuccess(false), 5000);
     } catch (e) {
-      console.error(e);
+      handleFirestoreError(e, OperationType.UPDATE, `users/${profile.uid}`);
     } finally {
       setIsUpgrading(false);
     }
@@ -89,7 +90,7 @@ export default function ProfileScreen() {
       await refreshProfile();
       setEditing(false);
     } catch (error) {
-      console.error("Error updating profile:", error);
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
     } finally {
       setLoading(false);
     }
@@ -142,7 +143,7 @@ export default function ProfileScreen() {
                     await updateDoc(doc(db, 'users', profile.uid), { isAvailableToday: !profile.isAvailableToday });
                     await refreshProfile();
                   } catch (e) {
-                    console.error(e);
+                    handleFirestoreError(e, OperationType.UPDATE, `users/${profile.uid}`);
                   }
                 }}
                 className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 relative ${profile.isAvailableToday ? 'bg-white/30' : 'bg-slate-200'}`}
@@ -315,8 +316,12 @@ export default function ProfileScreen() {
                  </div>
                  <button 
                   onClick={async () => {
-                    await updateDoc(doc(db, 'users', profile.uid), { isVerified: !profile.isVerified });
-                    await refreshProfile();
+                    try {
+                      await updateDoc(doc(db, 'users', profile.uid), { isVerified: !profile.isVerified });
+                      await refreshProfile();
+                    } catch (e) {
+                      handleFirestoreError(e, OperationType.UPDATE, `users/${profile.uid}`);
+                    }
                   }}
                   className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${profile.isVerified ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
                  >

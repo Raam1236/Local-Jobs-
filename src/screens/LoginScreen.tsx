@@ -10,6 +10,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { UserRole } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Briefcase, User as UserIcon, Loader2 } from 'lucide-react';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 export default function LoginScreen() {
   const { t, language, setLanguage } = useLanguage();
@@ -33,15 +34,18 @@ export default function LoginScreen() {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       
       if (!userDoc.exists()) {
-        // If new user, they default to 'worker', we might need a way to let them choose later
-        // or prompt for role on first login. For now, default to worker.
-        await setDoc(doc(db, 'users', user.uid), {
+        const newUser = {
           uid: user.uid,
           email: user.email,
           name: user.displayName || 'User',
-          role: 'worker', // Default role
+          role: 'worker', 
           createdAt: new Date().toISOString(),
-        });
+        };
+        try {
+          await setDoc(doc(db, 'users', user.uid), newUser);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}`);
+        }
       }
     } catch (err: any) {
       if (err.code === 'auth/popup-closed-by-user') return;
@@ -63,14 +67,19 @@ export default function LoginScreen() {
       } else {
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
         const finalRole = email.toLowerCase() === 'admin@localjob.com' ? 'admin' : role;
-        await setDoc(doc(db, 'users', user.uid), {
+        const newUser = {
           uid: user.uid,
           email,
           name: email.toLowerCase() === 'admin@localjob.com' ? 'System Administrator' : name,
           role: finalRole,
           isVerified: email.toLowerCase() === 'admin@localjob.com',
           createdAt: new Date().toISOString(),
-        });
+        };
+        try {
+          await setDoc(doc(db, 'users', user.uid), newUser);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}`);
+        }
       }
     } catch (err: any) {
       if (err.code === 'auth/operation-not-allowed') {

@@ -1,16 +1,16 @@
 import React from 'react';
-import { Mail, MessageCircle, Phone, Globe, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Mail, Instagram, Globe, ShieldCheck, HelpCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function ContactScreen() {
   const contactMethods = [
     {
-      icon: <MessageCircle className="text-emerald-500" />,
-      title: "WhatsApp Support",
-      desc: "Fastest way to get help",
-      action: "Chat Now",
-      link: "https://wa.me/916361380854",
-      color: "bg-emerald-50"
+      icon: <Instagram className="text-pink-500" />,
+      title: "Instagram Support",
+      desc: "Message us on Instagram",
+      action: "Message",
+      link: "https://instagram.com/rgfoods02",
+      color: "bg-pink-50"
     },
     {
       icon: <Mail className="text-blue-500" />,
@@ -19,14 +19,6 @@ export default function ContactScreen() {
       action: "Send Email",
       link: "mailto:rgfoods02@gmail.com",
       color: "bg-blue-50"
-    },
-    {
-      icon: <Phone className="text-rose-500" />,
-      title: "Call Helpline",
-      desc: "Mon-Sat, 10AM - 6PM",
-      action: "Call Now",
-      link: "tel:+918277432056",
-      color: "bg-rose-50"
     }
   ];
 

@@ -9,6 +9,7 @@ import { motion } from 'motion/react';
 import AdBanner from '../components/AdBanner';
 import FullscreenAd from '../components/FullscreenAd';
 import { Country, State, City } from 'country-state-city';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 interface JobPostScreenProps {
   onComplete: () => void;
@@ -128,7 +129,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
       });
       setShowAd(true);
     } catch (error) {
-      console.error("Error posting job:", error);
+      handleFirestoreError(error, OperationType.CREATE, 'jobs');
     } finally {
       setLoading(false);
     }
