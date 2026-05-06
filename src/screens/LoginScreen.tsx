@@ -9,11 +9,13 @@ import {
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { UserRole } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Briefcase, User as UserIcon, Loader2 } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 export default function LoginScreen() {
   const { t, language, setLanguage } = useLanguage();
+  const { refreshProfile, user: authUser, profile, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,15 +24,9 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    setError('');
-    const provider = new GoogleAuthProvider();
+  const syncProfile = async (user: any) => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      // Check if user already exists in Firestore
+      console.log("Syncing profile for:", user.email);
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       
       if (!userDoc.exists()) {
@@ -41,12 +37,39 @@ export default function LoginScreen() {
           role: 'worker', 
           createdAt: new Date().toISOString(),
         };
-        try {
-          await setDoc(doc(db, 'users', user.uid), newUser);
-        } catch (err) {
-          handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}`);
+        await setDoc(doc(db, 'users', user.uid), newUser);
+      }
+      
+      await refreshProfile();
+    } catch (err) {
+      console.error("Profile sync error:", err);
+      handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}`);
+    }
+  };
+
+  // Auto-complete profile for Google users if they are logged in but have no profile
+  React.useEffect(() => {
+    const autoRegister = async () => {
+      if (authUser && !profile && !authLoading && !loading) {
+        const isGoogleUser = authUser.providerData.some(p => p.providerId === 'google.com');
+        if (isGoogleUser) {
+          setLoading(true);
+          await syncProfile(authUser);
+          setLoading(false);
         }
       }
+    };
+    autoRegister();
+  }, [authUser, profile, authLoading]);
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError('');
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    try {
+      const result = await signInWithPopup(auth, provider);
+      await syncProfile(result.user);
     } catch (err: any) {
       if (err.code === 'auth/popup-closed-by-user') return;
       setError('Google Sign-In failed. Please try again.');
