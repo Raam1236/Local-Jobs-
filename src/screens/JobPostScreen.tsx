@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -10,6 +10,7 @@ import AdBanner from '../components/AdBanner';
 import FullscreenAd from '../components/FullscreenAd';
 import { Country, State, City } from 'country-state-city';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
+import { getDistrictsForState } from '../lib/locationData';
 
 interface JobPostScreenProps {
   onComplete: () => void;
@@ -45,9 +46,9 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
 
   const categories = ['Delivery', 'Helper', 'Mechanic', 'Cleaner', 'Repair', 'Construction', 'Others'];
   const salaryTypes = [
-    { value: 'per_day', label: 'Per Day' },
-    { value: 'fixed', label: 'Fixed Price' },
-    { value: 'monthly', label: 'Monthly' }
+    { value: 'per_day', label: t('perDay') },
+    { value: 'fixed', label: t('fixedPrice') },
+    { value: 'monthly', label: t('monthly') }
   ];
 
   const countries = useMemo(() => {
@@ -61,7 +62,9 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
 
   const districts = useMemo(() => {
     if (!formData.countryCode || !formData.stateCode) return [];
-    return City.getCitiesOfState(formData.countryCode, formData.stateCode).sort((a, b) => a.name.localeCompare(b.name));
+    const rawCities = City.getCitiesOfState(formData.countryCode, formData.stateCode);
+    return getDistrictsForState(formData.countryCode, formData.stateCode, rawCities)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [formData.countryCode, formData.stateCode]);
 
   const handleMagicFill = async () => {
@@ -118,14 +121,17 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
         return;
       }
 
-      await addDoc(collection(db, 'jobs'), {
+      const jobRef = doc(collection(db, 'jobs'));
+      await setDoc(jobRef, {
         ...formData,
+        id: jobRef.id,
         workersNeeded: parseInt(formData.workersNeeded) || 1,
         employerId: user.uid,
         employerName: profile.name,
+        employerInstagram: profile.instagram || '',
         status: 'open',
         location: { lat: 0, lng: 0 }, 
-        createdAt: new Date().toISOString()
+        createdAt: serverTimestamp()
       });
       setShowAd(true);
     } catch (error) {
@@ -179,7 +185,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
             className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-blue-100 active:scale-95 transition-all"
           >
             {magicFilling ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            AI Magic Fill
+            {t('magicFill')}
           </button>
           <button 
             type="button"
@@ -216,7 +222,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 sm:col-span-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Salary / Payment</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">{t('salaryPayment')}</label>
             <div className="flex gap-2">
               <input
                 type="number"
@@ -238,7 +244,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Start Time</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">{t('startTime')}</label>
             <input
               type="time"
               required
@@ -248,7 +254,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
             />
           </div>
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">End Time</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">{t('endTime')}</label>
             <input
               type="time"
               required
@@ -260,7 +266,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
         </div>
 
         <div>
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Workers Needed Today</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">{t('workersNeeded')}</label>
           <input
             type="number"
             min="1"
@@ -273,10 +279,10 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
         </div>
 
         <div className="space-y-4 pt-2 border-t border-slate-100">
-          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em]">Location Details</p>
+          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em]">{t('locationDetails')}</p>
           
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Country</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('country')}</label>
             <select
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-slate-700"
               value={formData.countryCode}
@@ -301,7 +307,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">State</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('state')}</label>
               <select
                 required
                 disabled={!formData.countryCode}
@@ -324,7 +330,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">District</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('district')}</label>
               <select
                 required
                 disabled={!formData.stateCode}
@@ -341,7 +347,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Village / Area (Manual)</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('village')}</label>
               <input
                 type="text"
                 required
@@ -352,7 +358,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Pincode</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('pincode')}</label>
               <input
                 type="text"
                 required
@@ -391,7 +397,7 @@ export default function JobPostScreen({ onComplete }: JobPostScreenProps) {
           {loading ? <Loader2 className="animate-spin" /> : (
             <>
               <Send size={18} />
-              <span>POST JOB NOW</span>
+              <span>{t('postJobNow')}</span>
             </>
           )}
         </button>

@@ -27,6 +27,7 @@ type Screen = 'home' | 'profile' | 'post-job' | 'my-jobs' | 'admin' | 'contact';
 
 function AppContent() {
   const { user, profile, loading } = useAuth();
+  const { t } = useLanguage();
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [showSplash, setShowSplash] = useState(true);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -122,7 +123,7 @@ function AppContent() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-        <p className="mt-4 text-slate-500 font-medium font-sans">Loading LocalJob...</p>
+        <p className="mt-4 text-slate-500 font-medium font-sans">{t('loadingApp')}</p>
       </div>
     );
   }
@@ -168,8 +169,8 @@ function AppContent() {
                         <Navigation size={40} className="animate-pulse" />
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Enable Location</h3>
-                        <p className="text-slate-500 text-xs leading-relaxed font-medium">To show you <b>Jobs within your village</b> and calculate travel distance, LocalJob needs access to your location data. This data is only used while the app is active.</p>
+                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">{t('enableLocation')}</h3>
+                        <p className="text-slate-500 text-xs leading-relaxed font-medium">{t('locationRationale')}</p>
                     </div>
                     <button 
                         onClick={() => {
@@ -178,7 +179,7 @@ function AppContent() {
                         }}
                         className="w-full py-5 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-[0.2em] text-xs shadow-xl active:scale-95 transition-all"
                     >
-                        Allow & Continue
+                        {t('allowContinue')}
                     </button>
                 </motion.div>
             </div>
@@ -219,40 +220,40 @@ function AppContent() {
       {/* Navigation Bar */}
       {!isKeyboardVisible && (
         <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50">
-          <NavButton 
-            active={currentScreen === 'home'} 
-            icon="Home" 
-            label="Home" 
-            onClick={() => setCurrentScreen('home')} 
-          />
-          {profile.role === 'admin' && (
-            <NavButton 
-              active={currentScreen === 'admin'} 
-              icon="Shield" 
-              label="Admin" 
-              onClick={() => setCurrentScreen('admin')} 
-            />
-          )}
-          <NavButton 
-            active={currentScreen === 'contact'} 
-            icon="MessageSquare" 
-            label="Support" 
-            onClick={() => setCurrentScreen('contact')} 
-          />
-          {profile.role === 'employer' && (
-            <button 
-              onClick={() => setCurrentScreen('post-job')}
-              className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg -mt-10 border-4 border-slate-50 active:scale-95 transition-transform"
-            >
-              <span className="text-2xl">+</span>
-            </button>
-          )}
-          <NavButton 
-            active={currentScreen === 'profile'} 
-            icon="User" 
-            label="Profile" 
-            onClick={() => setCurrentScreen('profile')} 
-          />
+      <NavButton 
+        active={currentScreen === 'home'} 
+        icon="Home" 
+        label={t('home')} 
+        onClick={() => setCurrentScreen('home')} 
+      />
+      {profile.role === 'admin' && (
+        <NavButton 
+          active={currentScreen === 'admin'} 
+          icon="Shield" 
+          label={t('admin')} 
+          onClick={() => setCurrentScreen('admin')} 
+        />
+      )}
+      <NavButton 
+        active={currentScreen === 'contact'} 
+        icon="MessageSquare" 
+        label={t('support')} 
+        onClick={() => setCurrentScreen('contact')} 
+      />
+      {profile.role === 'employer' && (
+        <button 
+          onClick={() => setCurrentScreen('post-job')}
+          className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg -mt-10 border-4 border-slate-50 active:scale-95 transition-transform"
+        >
+          <span className="text-2xl">+</span>
+        </button>
+      )}
+      <NavButton 
+        active={currentScreen === 'profile'} 
+        icon="User" 
+        label={t('profile')} 
+        onClick={() => setCurrentScreen('profile')} 
+      />
         </nav>
       )}
     </div>

@@ -6,7 +6,7 @@ import {
   GoogleAuthProvider, 
   signInWithPopup 
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { UserRole } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,7 +35,7 @@ export default function LoginScreen() {
           email: user.email,
           name: user.displayName || 'User',
           role: 'worker', 
-          createdAt: new Date().toISOString(),
+          createdAt: serverTimestamp(),
         };
         await setDoc(doc(db, 'users', user.uid), newUser);
       }
@@ -96,7 +96,7 @@ export default function LoginScreen() {
           name: email.toLowerCase() === 'admin@localjob.com' ? 'System Administrator' : name,
           role: finalRole,
           isVerified: email.toLowerCase() === 'admin@localjob.com',
-          createdAt: new Date().toISOString(),
+          createdAt: serverTimestamp(),
         };
         try {
           await setDoc(doc(db, 'users', user.uid), newUser);
@@ -137,7 +137,7 @@ export default function LoginScreen() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {!isLogin && (
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 block">Full Name</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('fullName')}</label>
             <input
               type="text"
               value={name}
@@ -190,7 +190,7 @@ export default function LoginScreen() {
         )}
 
         <div>
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 block">Email</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('email')}</label>
           <input
             type="email"
             value={email}
@@ -201,7 +201,7 @@ export default function LoginScreen() {
         </div>
 
         <div>
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 block">Password</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('password')}</label>
           <input
             type="password"
             value={password}
@@ -222,12 +222,12 @@ export default function LoginScreen() {
           disabled={loading}
           className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 active:scale-95 transition-transform flex items-center justify-center"
         >
-          {loading ? <Loader2 className="animate-spin" /> : (isLogin ? 'LOG IN' : 'SIGN UP')}
+          {loading ? <Loader2 className="animate-spin" /> : (isLogin ? t('login').toUpperCase() : t('signup').toUpperCase())}
         </button>
 
         <div className="flex items-center gap-4 my-6">
           <div className="flex-1 h-px bg-slate-100"></div>
-          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">OR</span>
+          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{t('or')}</span>
           <div className="flex-1 h-px bg-slate-100"></div>
         </div>
 
@@ -238,7 +238,7 @@ export default function LoginScreen() {
           className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-colors shadow-sm active:scale-95"
         >
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-          <span>CONTINUE WITH GOOGLE</span>
+          <span>{t('continueWithGoogle').toUpperCase()}</span>
         </button>
       </form>
 
@@ -246,7 +246,7 @@ export default function LoginScreen() {
         onClick={() => setIsLogin(!isLogin)}
         className="mt-6 text-slate-500 text-sm font-medium hover:text-blue-600 underline underline-offset-4"
       >
-        {isLogin ? "Don't have an account? Sign up" : "Already have an account? Log in"}
+        {isLogin ? t('noAccount') : t('haveAccount')}
       </button>
     </div>
   );

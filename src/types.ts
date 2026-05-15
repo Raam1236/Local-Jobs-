@@ -6,6 +6,7 @@ export interface UserProfile {
   name: string;
   role: UserRole;
   isVerified?: boolean;
+  instagram?: string;
   averageRating?: number;
   ratingCount?: number;
   skills?: string[];

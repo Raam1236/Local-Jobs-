@@ -1,12 +1,14 @@
 import React from 'react';
 import { Mail, Instagram, Globe, ShieldCheck, HelpCircle } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function ContactScreen() {
+  const { t } = useLanguage();
   const contactMethods = [
     {
       icon: <Instagram className="text-pink-500" />,
-      title: "Instagram Support",
+      title: t('instagramSupport'),
       desc: "Message us on Instagram",
       action: "Message",
       link: "https://instagram.com/rgfoods02",
@@ -14,7 +16,7 @@ export default function ContactScreen() {
     },
     {
       icon: <Mail className="text-blue-500" />,
-      title: "Email Support",
+      title: t('emailSupport'),
       desc: "For detailed inquiries",
       action: "Send Email",
       link: "mailto:rgfoods02@gmail.com",
@@ -29,7 +31,7 @@ export default function ContactScreen() {
   ];
 
   const faqs = [
-    { q: "How to hire workers?", a: "Go to 'Post Job', fill details. Workers will see it and contact you via WhatsApp." },
+    { q: "How to hire workers?", a: "Go to 'Post Job', fill details. Workers will see it and contact you via Instagram." },
     { q: "Is this free?", a: "Yes, LocalJob is free for both workers and employers." },
     { q: "How to verify profile?", a: "Go to your profile settings and click 'Verify Now'. Our team will reach out." },
     { q: "Payments and safety?", a: "Always pay after work is done. Never pay any 'registration fee' to anyone." },
@@ -39,8 +41,8 @@ export default function ContactScreen() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 pb-24">
       <header className="bg-slate-900 px-6 pt-12 pb-12 rounded-b-[40px] shadow-xl text-white">
-        <h2 className="text-3xl font-black tracking-tight mb-2">Help Center</h2>
-        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed">24/7 support for our community</p>
+        <h2 className="text-3xl font-black tracking-tight mb-2">{t('helpCenter')}</h2>
+        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest leading-relaxed">{t('support247')}</p>
       </header>
 
       <main className="p-6 -mt-8 space-y-8">
@@ -77,7 +79,7 @@ export default function ContactScreen() {
             <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
                <HelpCircle size={18} />
             </div>
-            <h3 className="font-black text-slate-800 uppercase tracking-[0.2em] text-[10px]">Video Tutorials</h3>
+            <h3 className="font-black text-slate-800 uppercase tracking-[0.2em] text-[10px]">{t('videoTutorials')}</h3>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
             {tutorials.map((t, i) => (
@@ -94,7 +96,7 @@ export default function ContactScreen() {
         </section>
 
         <section>
-           <h3 className="font-black text-slate-800 uppercase tracking-[0.2em] text-[10px] mb-4 ml-2">Common Questions</h3>
+           <h3 className="font-black text-slate-800 uppercase tracking-[0.2em] text-[10px] mb-4 ml-2">{t('commonQuestions')}</h3>
            <div className="space-y-3">
              {faqs.map((faq, i) => (
                <details key={i} className="group bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">

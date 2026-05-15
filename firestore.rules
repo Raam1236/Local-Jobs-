@@ -2,146 +2,77 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 0. Global Safety Net
     match /{document=**} {
       allow read, write: if false;
     }
-
-    // --- Phase 3: Primitive Definitions ---
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isVerifiedUser() {
-      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // --- Validation Blueprints ---
-
-    function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'email', 'name', 'role']) &&
-             data.uid == request.auth.uid &&
-             data.email is string && data.email.size() <= 100 &&
-             data.name is string && data.name.size() <= 100 &&
-             data.role in ['worker', 'employer'] &&
-             (!('phone' in data) || (data.phone is string && data.phone.size() <= 20));
-    }
-
-    function isValidJob(data) {
-      return data.keys().hasAll(['id', 'title', 'employerId', 'payment', 'status', 'createdAt']) &&
-             isValidId(data.id) &&
-             data.title is string && data.title.size() <= 150 &&
-             data.description is string && data.description.size() <= 2000 &&
-             data.employerId == request.auth.uid &&
-             data.status in ['open', 'closed', 'urgent_replacement'] &&
-             data.createdAt == request.time;
-    }
-
-    function isValidApplication(data) {
-      return data.keys().hasAll(['id', 'jobId', 'workerId', 'employerId', 'status', 'createdAt']) &&
-             isValidId(data.id) &&
-             isValidId(data.jobId) &&
-             data.workerId == request.auth.uid &&
-             data.status == 'pending' &&
-             data.createdAt == request.time;
-    }
-
-    // --- Phase 4: Match Blocks ---
-
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isOwner(userId) && isValidUser(incoming());
-      allow update: if (
-        isOwner(userId) && 
-        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'skills', 'location', 'phone', 'profileImageUrl', 'languages', 'isAvailableToday', 'isPremium', 'viewedContactIds', 'isVerified', 'referralCode'])
-      ) || isAdmin() || (
-        // Allow system/other users to update ratings via review logic (approximated here)
-        isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['averageRating', 'ratingCount'])
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (request.auth.uid == userId || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'ratingCount'])
       );
-    }
-
-    match /users/{userId}/private/info {
-      allow read, write: if isOwner(userId);
-    }
-
-    match /users/{userId}/reviews/{reviewId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && incoming().reviewerId == request.auth.uid && isValidId(reviewId);
     }
 
     match /jobs/{jobId} {
       allow read: if isSignedIn();
-      allow create: if isVerifiedUser() && isValidJob(incoming()) && isValidId(jobId);
-      allow update: if isVerifiedUser() && (
-        (existing().employerId == request.auth.uid && (
-          // Standard Update
-          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'payment', 'status', 'location', 'category', 'time', 'workersNeeded', 'salary', 'salaryType', 'startTime', 'endTime'])
-        )) || isAdmin()
+      allow create: if isSignedIn() && request.resource.data.employerId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.employerId == request.auth.uid || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
-      allow delete: if isAdmin() || (isSignedIn() && existing().employerId == request.auth.uid);
+      allow delete: if isSignedIn() && (resource.data.employerId == request.auth.uid || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
     }
 
     match /applications/{applicationId} {
-      allow read: if isSignedIn() && (resource.data.workerId == request.auth.uid || resource.data.employerId == request.auth.uid);
-      allow create: if isVerifiedUser() && isValidApplication(incoming()) && isValidId(applicationId) &&
-                    get(/databases/$(database)/documents/jobs/$(incoming().jobId)).data.status in ['open', 'urgent_replacement'];
-      
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.workerId == request.auth.uid;
       allow update: if isSignedIn() && (
-        // Employer: Accept/Reject/No-Show
-        (existing().employerId == request.auth.uid && 
-         incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
-         incoming().status in ['accepted', 'rejected', 'no_show']) ||
-        
-        // Worker: Cancel/Emergency Cancel
-        (existing().workerId == request.auth.uid &&
-         incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
-         incoming().status in ['cancelled', 'emergency_cancel']) ||
-        
-        isAdmin()
+        resource.data.workerId == request.auth.uid || 
+        resource.data.employerId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
 
     match /notifications/{notificationId} {
-      allow read: if isOwner(resource.data.userId);
-      allow create: if isSignedIn(); // Service logic usually handles this, but allow client for demo
-      allow update: if isOwner(resource.data.userId) && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
-      allow delete: if isOwner(resource.data.userId);
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     match /reports/{reportId} {
-      allow create: if isSignedIn() && incoming().reporterId == request.auth.uid;
-      allow read: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow read: if isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /system/config {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
-
+    
     match /test/connection {
       allow read: if true;
+    }
+
+    // reviews subcollection
+    match /users/{userId}/reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.reviewerId == request.auth.uid;
     }
   }
 }

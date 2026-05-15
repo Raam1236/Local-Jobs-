@@ -28,7 +28,7 @@ export default function WorkerDetailScreen({ workerId, onBack }: WorkerDetailScr
   const [reportReason, setReportReason] = useState('Offensive behavior');
   const [reporting, setReporting] = useState(false);
 
-  const CONTACTS_LIMIT = 10;
+  const CONTACTS_LIMIT = 999999;
 
   const isContactUnlocked = () => {
     if (currentUserProfile?.isPremium) return true;
@@ -224,18 +224,13 @@ export default function WorkerDetailScreen({ workerId, onBack }: WorkerDetailScr
           {isContactUnlocked() ? (
             <div className="flex gap-3 mt-8">
               <a 
-                href={`tel:${worker.phone}`}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-all"
+                href={worker.instagram ? `https://instagram.com/${worker.instagram.replace('@', '')}` : '#'}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-slate-900 text-white py-4 rounded-[24px] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-slate-200 flex items-center justify-center gap-3 transition-all active:scale-95"
               >
-                <Phone size={18} />
-                Call Now
-              </a>
-              <a 
-                href={`https://wa.me/91${worker.phone}`}
-                className="flex-1 bg-green-500 text-white py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-200 active:scale-95 transition-all"
-              >
-                <MessageCircle size={18} />
-                WhatsApp
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                Contact on Instagram
               </a>
             </div>
           ) : (

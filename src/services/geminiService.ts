@@ -29,8 +29,7 @@ export const generateJobDraft = async (userInput: string): Promise<JobDraft> => 
       },
     });
 
-    if (!response.text) throw new Error("No response from AI");
-    return JSON.parse(response.text);
+    return JSON.parse(response.text || '{}');
   } catch (error) {
     console.error("AI Generation Error:", error);
     throw error;
@@ -55,8 +54,7 @@ export const detectFraud = async (jobData: any): Promise<{ isFraud: boolean; rea
       },
     });
 
-    if (!response.text) return { isFraud: false, reason: "" };
-    return JSON.parse(response.text);
+    return JSON.parse(response.text || '{"isFraud": false, "reason": ""}');
   } catch (error) {
     console.error("Fraud Detection Error:", error);
     return { isFraud: false, reason: "" };
@@ -69,14 +67,13 @@ export const suggestJobsForWorker = async (
   applicationJobIds: string[]
 ): Promise<{ suggestedJobIds: string[]; reasoning: string }> => {
   try {
-    const recentJobs = jobs.slice(0, 20); // Only analyze top 20 to save tokens
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `You are a job matching expert. Analyze this worker profile and suggest 1-2 jobs they haven't applied to yet.
-      Worker Profile: Skills: ${profile.skills.join(', ')}, Bio: ${profile.bio}
-      Already Applied To Job IDs: ${applicationJobIds.join(', ')}
-      Available Jobs List: ${JSON.stringify(recentJobs)}
-      Return JSON with suggestedJobIds and a brief collective reasoning why these are good matches.`,
+        Worker Profile: Skills: ${profile.skills?.join(', ') || ''}, Bio: ${profile.bio || ''}
+        Already Applied To Job IDs: ${applicationJobIds?.join(', ') || ''}
+        Available Jobs List: ${JSON.stringify(jobs.slice(0, 20))}
+        Return JSON with suggestedJobIds and a brief collective reasoning why these are good matches.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -93,8 +90,7 @@ export const suggestJobsForWorker = async (
       },
     });
 
-    if (!response.text) return { suggestedJobIds: [], reasoning: "" };
-    return JSON.parse(response.text);
+    return JSON.parse(response.text || '{"suggestedJobIds": [], "reasoning": ""}');
   } catch (error) {
     console.error("AI Suggestion Error:", error);
     return { suggestedJobIds: [], reasoning: "" };

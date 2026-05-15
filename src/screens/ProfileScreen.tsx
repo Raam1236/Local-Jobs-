@@ -8,6 +8,7 @@ import { User, LogOut, Phone, MapPin, Award, Languages, Loader2, Star, Check, Sh
 import AdBanner from '../components/AdBanner';
 import { Country, State, City } from 'country-state-city';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
+import { getDistrictsForState } from '../lib/locationData';
 
 export default function ProfileScreen() {
   const { profile, user, refreshProfile } = useAuth();
@@ -27,6 +28,7 @@ export default function ProfileScreen() {
     district: profile?.location?.district || '',
     village: profile?.location?.village || '',
     pincode: profile?.location?.pincode || '',
+    instagram: profile?.instagram || '',
     referralCode: profile?.referralCode || '',
   });
 
@@ -41,7 +43,9 @@ export default function ProfileScreen() {
 
   const districts = useMemo(() => {
     if (!formData.countryCode || !formData.stateCode) return [];
-    return City.getCitiesOfState(formData.countryCode, formData.stateCode).sort((a, b) => a.name.localeCompare(b.name));
+    const rawCities = City.getCitiesOfState(formData.countryCode, formData.stateCode);
+    return getDistrictsForState(formData.countryCode, formData.stateCode, rawCities)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [formData.countryCode, formData.stateCode]);
 
   const handleLogout = () => signOut(auth);
@@ -74,6 +78,7 @@ export default function ProfileScreen() {
       await updateDoc(doc(db, 'users', user.uid), {
         name: formData.name,
         phone: formData.phone,
+        instagram: formData.instagram,
         referralCode: formData.referralCode || profile.referralCode || `REF-${user.uid.substring(0,5).toUpperCase()}`,
         skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
         location: {
@@ -160,7 +165,7 @@ export default function ProfileScreen() {
         {editing ? (
           <form onSubmit={handleUpdate} className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 space-y-4">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Name</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('fullName')}</label>
               <input
                 type="text"
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
@@ -169,12 +174,22 @@ export default function ProfileScreen() {
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Phone</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('phone')}</label>
               <input
                 type="text"
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Instagram Handle</label>
+              <input
+                type="text"
+                placeholder="@username"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
+                value={formData.instagram}
+                onChange={(e) => setFormData({...formData, instagram: e.target.value})}
               />
             </div>
             <div className="space-y-4">
@@ -204,7 +219,7 @@ export default function ProfileScreen() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">State</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('state')}</label>
                   <select
                     disabled={!formData.countryCode}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-bold text-slate-700 disabled:opacity-50"
@@ -226,7 +241,7 @@ export default function ProfileScreen() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">District/City</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('district')}</label>
                   <select
                     disabled={!formData.stateCode}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-bold text-slate-700 disabled:opacity-50"
@@ -243,7 +258,7 @@ export default function ProfileScreen() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Village (Manual Entry)</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('village')}</label>
                   <input
                     type="text"
                     placeholder="Enter village"
@@ -253,7 +268,7 @@ export default function ProfileScreen() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Pincode</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">{t('pincode')}</label>
                   <input
                     type="text"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-bold text-slate-700"
@@ -295,13 +310,13 @@ export default function ProfileScreen() {
                 onClick={() => setEditing(false)}
                 className="flex-1 py-3 text-slate-400 font-bold uppercase tracking-wider text-xs"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button 
                 type="submit"
                 className="flex-1 py-3 bg-blue-600 text-white rounded-xl shadow-md font-bold uppercase tracking-wider text-xs"
               >
-                {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : 'Save Changes'}
+                {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : t('saveChanges')}
               </button>
             </div>
           </form>
@@ -335,7 +350,7 @@ export default function ProfileScreen() {
                    <button 
                     onClick={() => {
                       const text = `Join me on this amazing Job App! Use my code ${profile.referralCode} to get started.`;
-                      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+                      window.open(`https://www.instagram.com/direct/inbox/`);
                     }}
                     className="text-blue-600 font-black text-[10px] uppercase tracking-widest"
                    >
@@ -405,13 +420,13 @@ export default function ProfileScreen() {
             )}
 
             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-               <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-4">App Settings</h4>
+               <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-4">{t('appSettings')}</h4>
                <div className="flex items-center justify-between mb-6">
                  <div className="flex items-center gap-3">
                    <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
                      <Languages size={16} />
                    </div>
-                   <p className="text-sm font-bold text-slate-700">Language</p>
+                   <p className="text-sm font-bold text-slate-700">{t('category')}</p>
                  </div>
                  <div className="flex gap-1">
                     {(['en', 'hi', 'kn'] as const).map(l => (
@@ -439,7 +454,7 @@ export default function ProfileScreen() {
                 onClick={() => setEditing(true)}
                 className="w-full py-3 bg-slate-50 text-slate-600 rounded-xl font-bold uppercase tracking-wider text-xs border border-slate-100 transition-colors hover:bg-slate-100"
                >
-                 Edit Profile
+                 {t('editProfile')}
                </button>
             </div>
 

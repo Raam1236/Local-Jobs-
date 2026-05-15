@@ -93,8 +93,8 @@ export default function AdminScreen() {
                   <Shield className="text-blue-400" size={24} />
                </div>
                <div>
-                  <h2 className="text-2xl font-black tracking-tight leading-none">Command Center</h2>
-                  <p className="text-blue-200/50 text-[10px] font-black uppercase tracking-[0.2em] mt-1">System Oversight</p>
+                  <h2 className="text-2xl font-black tracking-tight leading-none">{t('commandCenter')}</h2>
+                  <p className="text-blue-200/50 text-[10px] font-black uppercase tracking-[0.2em] mt-1">{t('systemOversight')}</p>
                </div>
             </div>
             <button 
@@ -109,19 +109,19 @@ export default function AdminScreen() {
               onClick={() => setTab('users')}
               className={`flex-1 py-4 rounded-[22px] font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all ${tab === 'users' ? 'bg-white text-slate-900 shadow-2xl' : 'text-slate-400'}`}
             >
-              <Users size={16} strokeWidth={3} /> Accounts
+              <Users size={16} strokeWidth={3} /> {t('accounts')}
             </button>
             <button 
               onClick={() => setTab('jobs')}
               className={`flex-1 py-4 rounded-[22px] font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all ${tab === 'jobs' ? 'bg-white text-slate-900 shadow-2xl' : 'text-slate-400'}`}
             >
-              <Briefcase size={16} strokeWidth={3} /> Market
+              <Briefcase size={16} strokeWidth={3} /> {t('market')}
             </button>
             <button 
               onClick={() => setTab('settings')}
               className={`flex-1 py-4 rounded-[22px] font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all ${tab === 'settings' ? 'bg-white text-slate-900 shadow-2xl' : 'text-slate-400'}`}
             >
-              <Landmark size={16} strokeWidth={3} /> Settlement
+              <Landmark size={16} strokeWidth={3} /> {t('settlement')}
             </button>
           </div>
         </div>
@@ -135,23 +135,23 @@ export default function AdminScreen() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-xl shadow-slate-200/50 relative overflow-hidden group">
                   <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-blue-50 rounded-full blur-xl group-hover:scale-150 transition-transform" />
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 relative z-10">Active Markets</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 relative z-10">{t('activeMarkets')}</p>
                   <p className="text-4xl font-black text-slate-900 relative z-10">{jobs.length}</p>
                 </div>
                 <div className="bg-slate-900 p-6 rounded-[32px] shadow-2xl shadow-slate-300 relative overflow-hidden group">
                   <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-emerald-500/20 rounded-full blur-xl group-hover:scale-150 transition-transform" />
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 relative z-10">Total Workforce</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 relative z-10">{t('totalWorkforce')}</p>
                   <p className="text-4xl font-black text-white relative z-10">{users.length}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-xl shadow-slate-200/50">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Verified Pros</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">{t('verifiedPros')}</p>
                   <p className="text-3xl font-black text-orange-500 italic">{users.filter(u => u.isVerified).length}</p>
                 </div>
                 <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-xl shadow-slate-200/50">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Est. Revenue</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">{t('estRevenue')}</p>
                   <div className="flex items-baseline gap-1">
                     <span className="text-[10px] font-black text-slate-800">₹</span>
                     <p className="text-3xl font-black text-slate-900">{jobs.length * 10}</p>
@@ -162,7 +162,7 @@ export default function AdminScreen() {
               <div className="pt-4">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-6 flex items-center gap-2">
                    <div className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
-                   Recent Activity
+                   {t('recentActivity')}
                 </h3>
                
                 <div className="space-y-4">
